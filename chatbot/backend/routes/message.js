@@ -8,8 +8,13 @@ const auth = require('../middleware/auth.middleware');
 router.get('/:groupId', auth, async (req, res) => {
   try {
     const group = await Group.findById(req.params.groupId);
-    if (!group.members.includes(req.userId)) {
-      return res.status(403).json({ message: 'Not a member of this group' });
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+    
+    // Allow both current and past members to view messages
+    if (!group.members.includes(req.userId) && !group.pastMembers.includes(req.userId)) {
+      return res.status(403).json({ message: 'Not authorized to view messages' });
     }
 
     const messages = await Message.find({ group: req.params.groupId })
@@ -28,22 +33,25 @@ router.post('/:groupId', auth, async (req, res) => {
     const { content } = req.body;
     const group = await Group.findById(req.params.groupId);
     
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    // Check if user is an active member (not past member)
     if (!group.members.includes(req.userId)) {
-      return res.status(403).json({ message: 'Not a member of this group' });
+      return res.status(403).json({ message: 'You can no longer send messages to this group' });
     }
 
     const message = new Message({
-      sender: req.userId,
       content,
+      sender: req.userId,
       group: req.params.groupId
     });
-    
+
     await message.save();
-    const populatedMessage = await message.populate('sender', 'username');
-    
-    res.status(201).json(populatedMessage);
+    res.status(201).json(message);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 

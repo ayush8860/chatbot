@@ -18,6 +18,7 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
   const [showGroupMenu, setShowGroupMenu] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
 
   useEffect(() => {
     fetchGroups();
@@ -54,17 +55,35 @@ export default function Chat() {
     }
   };
 
-  const sendMessage = async (content) => {
-    if (!currentGroup) return;
+  const sendMessage = async () => {
+    if (!currentGroup || !newMessage.trim()) return;
     
     try {
       const response = await axios.post(
         `http://localhost:4000/api/messages/${currentGroup._id}`,
-        { content }
+        { content: newMessage.trim() },
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
       );
-      setMessages(prev => [...prev, response.data]);
+
+      // Add the new message to the messages array with sender information
+      const messageWithSender = {
+        ...response.data,
+        sender: {
+          _id: user.id,
+          username: user.username
+        }
+      };
+      
+      setMessages(prev => [...prev, messageWithSender]);
+      setNewMessage('');
+      setError(null);
     } catch (error) {
-      setError('Failed to send message');
+      console.error('Send message error:', error);
+      setError(error.response?.data?.message || 'Failed to send message');
     }
   };
 
@@ -82,12 +101,86 @@ export default function Chat() {
     if (!currentGroup) return;
 
     try {
-      await axios.post(`http://localhost:4000/api/groups/${currentGroup._id}/leave`);
-      setGroups(groups.filter(g => g._id !== currentGroup._id));
-      setCurrentGroup(null);
+      const response = await axios.post(`http://localhost:4000/api/groups/${currentGroup._id}/leave`);
+      
+      // Remove group from list if it was deleted (no members left)
+      if (response.data.message.includes('deleted')) {
+        setGroups(prevGroups => prevGroups.filter(g => g._id !== currentGroup._id));
+        setCurrentGroup(null);
+      } else {
+        // Update the group in the list with new members
+        const updatedGroups = groups.map(g => {
+          if (g._id === currentGroup._id) {
+            return {
+              ...g,
+              members: g.members.filter(memberId => memberId !== user.id)
+            };
+          }
+          return g;
+        });
+        setGroups(updatedGroups);
+        
+        // If there are other groups, switch to the first one
+        if (updatedGroups.length > 0 && currentGroup._id === updatedGroups[0]._id) {
+          setCurrentGroup(updatedGroups[1] || null);
+        } else {
+          setCurrentGroup(updatedGroups[0] || null);
+        }
+      }
+      
       setShowGroupMenu(false);
+      setError(null);
     } catch (error) {
-      setError('Failed to leave group');
+      console.error('Leave group error:', error);
+      setError(error.response?.data?.message || 'Failed to leave group');
+    }
+  };
+
+  const deleteGroup = async () => {
+    if (!currentGroup) return;
+
+    try {
+      await axios.delete(
+        `http://localhost:4000/api/groups/${currentGroup._id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      
+      // Remove group from list and clear messages
+      setGroups(prevGroups => {
+        const updatedGroups = prevGroups.filter(g => g._id !== currentGroup._id);
+        // Switch to another group if available
+        if (updatedGroups.length > 0) {
+          setCurrentGroup(updatedGroups[0]);
+        } else {
+          setCurrentGroup(null);
+          setMessages([]); // Clear messages when no groups left
+        }
+        return updatedGroups;
+      });
+      
+      setShowGroupMenu(false);
+      setError(null);
+    } catch (error) {
+      console.error('Delete group error:', error);
+      setError(error.response?.data?.message || 'Failed to delete group');
+    }
+  };
+
+  const canSendMessage = true;
+
+  const handleMessageChange = (e) => {
+    console.log('Input value:', e.target.value);
+    setNewMessage(e.target.value);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
@@ -130,6 +223,14 @@ export default function Chat() {
                       >
                         Leave Group
                       </button>
+                      {currentGroup?.creator === user.id && (
+                        <button
+                          onClick={deleteGroup}
+                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                        >
+                          Delete Group
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -144,7 +245,31 @@ export default function Chat() {
                 />
               ))}
             </div>
-            <ChatInput onSendMessage={sendMessage} />
+            <div className="p-4 border-t">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={handleMessageChange}
+                  onKeyPress={handleKeyPress}
+                  placeholder={canSendMessage ? "Type a message..." : "You can no longer send messages to this group"}
+                  disabled={!canSendMessage}
+                  className="flex-1 p-2 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+                <button 
+                  onClick={sendMessage}
+                  disabled={!canSendMessage || !newMessage.trim()}
+                  className={`px-4 py-2 rounded-lg
+                    ${(!canSendMessage || !newMessage.trim()) 
+                      ? 'bg-gray-300 cursor-not-allowed' 
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                    }
+                  `}
+                >
+                  Send
+                </button>
+              </div>
+            </div>
           </>
         ) : (
           <div className="flex items-center justify-center h-full">

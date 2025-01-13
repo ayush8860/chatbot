@@ -1,86 +1,82 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      await login(email, password);
-      navigate('/');
-    } catch (err) {
-      console.error('Login error:', err);
-      setError(err.message || 'Failed to login');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+    <div className="min-h-screen flex bg-gradient-to-br from-purple-900 to-black">
+      {/* Left section with tagline */}
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12">
+        <h1 className="text-5xl font-bold text-white">
+          Unleash your inner<br />sloth today.
+          <span className="text-purple-400">🦥</span>
+        </h1>
+      </div>
+
+      {/* Right section with form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center">
+        <div className="w-full max-w-md p-8 bg-gray-900 rounded-xl shadow-2xl">
+          <h2 className="text-2xl font-bold text-white mb-6">
+            Sign In to Your Account
           </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
+          <p className="text-gray-400 text-sm mb-8">
+            Let's get you signed in and get you started
+          </p>
+
+          <form className="space-y-6">
             <div>
+              <label className="text-gray-300 text-sm">Email Address</label>
               <input
                 type="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
+                className="w-full mt-2 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                placeholder="username@slothmail.com"
               />
             </div>
+
             <div>
+              <label className="text-gray-300 text-sm">Password</label>
               <input
                 type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
+                className="w-full mt-2 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                placeholder="••••••••"
               />
             </div>
-          </div>
 
-          <div>
             <button
               type="submit"
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-              disabled={loading}
+              className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              Sign In
             </button>
+          </form>
+
+          <div className="mt-8">
+            <p className="text-gray-400 text-sm text-center">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-purple-400 hover:text-purple-300">
+                Sign Up
+              </Link>
+            </p>
           </div>
-        </form>
-        <div className="text-center">
-          <Link to="/register" className="text-blue-600 hover:text-blue-500">
-            Don't have an account? Register
-          </Link>
+
+          {/* Social login options */}
+          <div className="mt-8 pt-8 border-t border-gray-800">
+            <div className="flex justify-center space-x-4">
+              <button className="p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                <img src="/facebook-icon.svg" alt="Facebook" className="w-6 h-6" />
+              </button>
+              <button className="p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                <img src="/twitter-icon.svg" alt="Twitter" className="w-6 h-6" />
+              </button>
+              <button className="p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                <img src="/google-icon.svg" alt="Google" className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

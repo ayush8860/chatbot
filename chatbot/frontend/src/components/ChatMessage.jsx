@@ -45,3 +45,4 @@ ChatMessage.propTypes = {
   }).isRequired,
   isOwnMessage: PropTypes.bool.isRequired
 };
+ 

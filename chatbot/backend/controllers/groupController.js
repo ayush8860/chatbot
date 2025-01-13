@@ -1,5 +1,6 @@
 const Group = require('../models/Group');
 const User = require('../models/User');
+const Message = require('../models/Message');
 
 const createGroup = async (req, res) => {
   try {
@@ -85,32 +86,58 @@ const leaveGroup = async (req, res) => {
       return res.status(403).json({ message: 'You are not a member of this group' });
     }
 
-    // Cannot leave if you're the creator and there are other members
-    if (group.creator.toString() === req.userId && group.members.length > 1) {
-      return res.status(403).json({ 
-        message: 'Creator cannot leave group while other members exist. Transfer ownership first.' 
-      });
-    }
-
     // Remove user from members
     group.members = group.members.filter(
       memberId => memberId.toString() !== req.userId
     );
 
+    // Add to pastMembers if not already there
+    if (!group.pastMembers?.includes(req.userId)) {
+      group.pastMembers = [...(group.pastMembers || []), req.userId];
+    }
+
+    // If creator is leaving and there are other members, transfer ownership
+    if (group.creator.toString() === req.userId && group.members.length > 0) {
+      group.creator = group.members[0];
+    }
+
     // If no members left, delete the group
     if (group.members.length === 0) {
       await Group.findByIdAndDelete(groupId);
-      return res.json({ message: 'Group deleted as last member left' });
-    }
-
-    // If creator is leaving, transfer ownership to first remaining member
-    if (group.creator.toString() === req.userId) {
-      group.creator = group.members[0];
+      return res.json({ message: 'Group deleted as no members remain' });
     }
 
     await group.save();
     res.json({ message: 'Successfully left the group' });
   } catch (error) {
+    console.error('Leave group error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const group = await Group.findById(groupId);
+
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    // Only creator can delete the group
+    if (group.creator.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Only group creator can delete the group' });
+    }
+
+    // Delete all messages in the group first
+    await Message.deleteMany({ group: groupId });
+    
+    // Delete the group
+    await Group.findByIdAndDelete(groupId);
+    
+    res.json({ message: 'Group deleted successfully' });
+  } catch (error) {
+    console.error('Delete group error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -119,5 +146,6 @@ module.exports = {
   createGroup,
   getGroups,
   addMembers,
-  leaveGroup
+  leaveGroup,
+  deleteGroup
 }; 
