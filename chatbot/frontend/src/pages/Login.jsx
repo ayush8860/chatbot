@@ -1,11 +1,34 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    try {
+      await login(formData.email, formData.password);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Failed to login');
+    }
+  };
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-purple-900 to-black">
@@ -23,17 +46,23 @@ export default function Login() {
           <h2 className="text-2xl font-bold text-white mb-6">
             Sign In to Your Account
           </h2>
-          <p className="text-gray-400 text-sm mb-8">
-            Let's get you signed in and get you started
-          </p>
+          {error && (
+            <div className="mb-4 p-3 bg-red-500 bg-opacity-20 border border-red-500 text-red-500 rounded">
+              {error}
+            </div>
+          )}
 
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="text-gray-300 text-sm">Email Address</label>
               <input
                 type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 className="w-full mt-2 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 placeholder="username@slothmail.com"
+                required
               />
             </div>
 
@@ -41,8 +70,12 @@ export default function Login() {
               <label className="text-gray-300 text-sm">Password</label>
               <input
                 type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
                 className="w-full mt-2 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 placeholder="••••••••"
+                required
               />
             </div>
 

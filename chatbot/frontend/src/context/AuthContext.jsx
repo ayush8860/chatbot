@@ -4,7 +4,11 @@ import axios from 'axios';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    // Check for stored user data on initial load
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -12,7 +16,6 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // You could also verify the token here with the backend
     }
     setLoading(false);
   }, []);
@@ -27,11 +30,11 @@ export const AuthProvider = ({ children }) => {
       
       const { token, user: userData } = response.data;
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(userData);
       return response.data;
     } catch (error) {
-      console.error('Registration error:', error.response?.data || error.message);
       throw new Error(error.response?.data?.message || 'Registration failed');
     }
   };
@@ -45,17 +48,18 @@ export const AuthProvider = ({ children }) => {
       
       const { token, user: userData } = response.data;
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(userData);
       return response.data;
     } catch (error) {
-      console.error('Login error:', error.response?.data || error.message);
       throw new Error(error.response?.data?.message || 'Login failed');
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
   };

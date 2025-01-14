@@ -1,13 +1,41 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
+  const [error, setError] = useState('');
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    try {
+      await register(formData.username, formData.email, formData.password);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Failed to register');
+    }
+  };
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-purple-900 to-black">
@@ -25,17 +53,23 @@ export default function Register() {
           <h2 className="text-2xl font-bold text-white mb-6">
             Create Your Account
           </h2>
-          <p className="text-gray-400 text-sm mb-8">
-            Join us and start your journey today
-          </p>
+          {error && (
+            <div className="mb-4 p-3 bg-red-500 bg-opacity-20 border border-red-500 text-red-500 rounded">
+              {error}
+            </div>
+          )}
 
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="text-gray-300 text-sm">Full Name</label>
+              <label className="text-gray-300 text-sm">Username</label>
               <input
                 type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
                 className="w-full mt-2 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                placeholder="John Doe"
+                placeholder="johndoe"
+                required
               />
             </div>
 
@@ -43,8 +77,12 @@ export default function Register() {
               <label className="text-gray-300 text-sm">Email Address</label>
               <input
                 type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 className="w-full mt-2 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 placeholder="username@slothmail.com"
+                required
               />
             </div>
 
@@ -52,8 +90,12 @@ export default function Register() {
               <label className="text-gray-300 text-sm">Password</label>
               <input
                 type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
                 className="w-full mt-2 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 placeholder="••••••••"
+                required
               />
             </div>
 
@@ -61,8 +103,12 @@ export default function Register() {
               <label className="text-gray-300 text-sm">Confirm Password</label>
               <input
                 type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 className="w-full mt-2 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 placeholder="••••••••"
+                required
               />
             </div>
 
