@@ -41,6 +41,7 @@ export default function Chat() {
       setError('Failed to load groups');
     }
   };
+  // 
 
   const fetchMessages = async (groupId) => {
     try {
